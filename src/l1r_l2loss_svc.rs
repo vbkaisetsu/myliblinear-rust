@@ -223,12 +223,11 @@ impl L1rL2lossSvcSolver {
     fn transpose_xs<K>(
         xs: &[Vec<Feature<K>>],
         ys: &[Label],
-        n_features: usize,
     ) -> (HashMap<K, usize>, Vec<Vec<TransposedFeature>>)
     where
         K: Eq + Hash + Clone,
     {
-        let mut xs_t = vec![vec![]; n_features];
+        let mut xs_t = vec![];
         let mut feature_map = HashMap::new();
         for (i, (x, y)) in xs.iter().zip(ys).enumerate() {
             let y = match y {
@@ -241,6 +240,7 @@ impl L1rL2lossSvcSolver {
                 } else {
                     let id = feature_map.len();
                     feature_map.insert(feat.key.clone(), id);
+                    xs_t.push(vec![]);
                     id
                 };
                 xs_t[feature_id].push(TransposedFeature {
@@ -256,11 +256,7 @@ impl L1rL2lossSvcSolver {
     where
         K: Eq + Hash + Clone,
     {
-        let n_features = prob.n_features;
-        let ws = vec![0.0; n_features];
         let bs = vec![1.0; prob.ys.len()];
-
-        let indices: Vec<_> = (0..n_features).collect();
         let ys: Vec<_> = prob
             .ys
             .iter()
@@ -273,7 +269,10 @@ impl L1rL2lossSvcSolver {
             })
             .collect();
 
-        let (feature_map, xs_t) = Self::transpose_xs(&prob.xs, &ys, n_features);
+        let (feature_map, xs_t) = Self::transpose_xs(&prob.xs, &ys);
+        let n_features = feature_map.len();
+        let ws = vec![0.0; n_features];
+        let indices: Vec<_> = (0..n_features).collect();
 
         let mut xs_sq = vec![0.0; n_features];
         for j in 0..n_features {
@@ -291,7 +290,7 @@ impl L1rL2lossSvcSolver {
             solver: self,
             ws: Some(ws),
             rng: rand::thread_rng(),
-            n_train_features: prob.n_features,
+            n_train_features: n_features,
             xs_t,
             bs,
             ys,

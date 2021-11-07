@@ -14,4 +14,8 @@ where
         let id = *self.feature_map.get(key)?;
         self.ws.get(id).cloned()
     }
+
+    pub fn num_features(&self) -> usize {
+        self.ws.len()
+    }
 }
